@@ -49,7 +49,7 @@ class CPDataset(data.Dataset):
         # cloth image & cloth mask
         if self.stage == 'GMM':
             c = Image.open(osp.join(self.data_path, 'cloth', c_name))
-            cm = Image.open(osp.join(self.data_path, 'cloth-mask', c_name))
+            cm = Image.open(osp.join(self.data_path, 'cloth-mask', c_name.replace('.jpg', '_mask.jpg')))
         else:
             c = Image.open(osp.join(self.data_path, 'warp-cloth', c_name))
             cm = Image.open(osp.join(self.data_path, 'warp-mask', c_name))
@@ -66,34 +66,29 @@ class CPDataset(data.Dataset):
 
         # load parsing image
         parse_name = im_name.replace('.jpg', '.png')
-        im_parse = Image.open(osp.join(self.data_path, 'image-parse', parse_name))
+        im_parse = Image.open(osp.join(self.data_path, 'image-parse', parse_name)).convert('P')
         parse_array = np.array(im_parse)
         parse_shape = (parse_array > 0).astype(np.float32)
-        parse_head = (parse_array == 1).astype(np.float32) + \
-                (parse_array == 2).astype(np.float32) + \
-                (parse_array == 4).astype(np.float32) + \
-                (parse_array == 13).astype(np.float32)
-        parse_cloth = (parse_array == 5).astype(np.float32) + \
-                (parse_array == 6).astype(np.float32) + \
-                (parse_array == 7).astype(np.float32)
+        parse_head = (parse_array == 15).astype(np.float32) + (parse_array == 190).astype(np.float32)
+        parse_cloth = (parse_array == 27).astype(np.float32) + (parse_array == 21).astype(np.float32)
        
         # shape downsample
         parse_shape = Image.fromarray((parse_shape*255).astype(np.uint8))
         parse_shape = parse_shape.resize((self.fine_width//16, self.fine_height//16), Image.BILINEAR)
         parse_shape = parse_shape.resize((self.fine_width, self.fine_height), Image.BILINEAR)
         shape = self.transform_gray(parse_shape) # [-1,1]
-        phead = torch.from_numpy(parse_head) # [0,1]
-        pcm = torch.from_numpy(parse_cloth) # [0,1]
+        phead = torch.from_numpy(parse_head) # [0 or 1]
+        pcm = torch.from_numpy(parse_cloth) # [0 or 1]
 
         # upper cloth
         im_c = im * pcm + (1 - pcm) # [-1,1], fill 1 for other parts
-        im_h = im * phead - (1 - phead) # [-1,1], fill 0 for other parts
+        im_h = im * phead - (1 - phead) # [-1,1], fill -1 for other parts
 
         # load pose points
         pose_name = im_name.replace('.jpg', '_keypoints.json')
         with open(osp.join(self.data_path, 'pose', pose_name), 'r') as f:
             pose_label = json.load(f)
-            pose_data = pose_label['people'][0]['pose_keypoints']
+            pose_data = pose_label['people'][0]['pose_keypoints_2d']
             pose_data = np.array(pose_data)
             pose_data = pose_data.reshape((-1,3))
 
@@ -111,7 +106,7 @@ class CPDataset(data.Dataset):
                 draw.rectangle((pointx-r, pointy-r, pointx+r, pointy+r), 'white', 'white')
                 pose_draw.rectangle((pointx-r, pointy-r, pointx+r, pointy+r), 'white', 'white')
             one_map = self.transform_gray(one_map)
-            pose_map[i] = one_map[0]
+            pose_map[i] = one_map[0] # [-1, 1]
 
         # just for visualization
         im_pose = self.transform_gray(im_pose)
@@ -120,7 +115,7 @@ class CPDataset(data.Dataset):
         agnostic = torch.cat([shape, im_h, pose_map], 0) 
 
         if self.stage == 'GMM':
-            im_g = Image.open('grid.png')
+            im_g = Image.open('grid_mpv.png')
             im_g = self.transform(im_g)
         else:
             im_g = ''

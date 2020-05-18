@@ -15,15 +15,15 @@ from visualization import board_add_images
 
 def get_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", default = "GMM")
     parser.add_argument("--stage", default = "GMM")
-    parser.add_argument("--gpu_ids", default = "")
+    parser.add_argument("--name", default = "GMM")
+    parser.add_argument("--gpu_ids", default = "1")
     parser.add_argument("--multi_gpu", action='store_true', help='use multi gpu')
-    parser.add_argument("--dataroot", default = "/data/zhaofuwei/cp-vton")
+    parser.add_argument("--dataroot", default = "/data/zhaofuwei/cp-vton-3d/data")
     parser.add_argument("--data_list", default = "train_pairs.txt")
     parser.add_argument("--shuffle", action='store_true', help='shuffle input data')
-    parser.add_argument("--fine_width", type=int, default = 192)
-    parser.add_argument("--fine_height", type=int, default = 256)
+    parser.add_argument("--fine_width", type=int, default = 512)
+    parser.add_argument("--fine_height", type=int, default = 512)
     parser.add_argument('-j', '--workers', type=int, default=1)
     parser.add_argument('-b', '--batch-size', type=int, default=4)
     parser.add_argument("--radius", type=int, default = 5)
@@ -31,11 +31,11 @@ def get_opt():
     parser.add_argument('--lr', type=float, default=0.0001, help='initial learning rate for adam')
     parser.add_argument("--keep_step", type=int, default = 100000)
     parser.add_argument("--decay_step", type=int, default = 100000)
-    parser.add_argument('--tensorboard_dir', type=str, default='/data/zhaofuwei/cp-vton/train/tensorboard', help='save tensorboard infos')
-    parser.add_argument('--checkpoint_dir', type=str, default='/data/zhaofuwei/cp-vton/train/checkpoints', help='save checkpoint infos')
+    parser.add_argument('--tensorboard_dir', type=str, default='train/tensorboard', help='save tensorboard infos')
+    parser.add_argument('--checkpoint_dir', type=str, default='train/checkpoints', help='save checkpoint infos')
     parser.add_argument('--checkpoint', type=str, default='', help='model checkpoint for initialization')
     parser.add_argument("--display_count", type=int, default = 20)
-    parser.add_argument("--save_count", type=int, default = 100)
+    parser.add_argument("--save_count", type=int, default = 5000)
 
     opt = parser.parse_args()
     return opt
@@ -228,7 +228,7 @@ if __name__ == "__main__":
         train_gmm(opt, train_loader, model, board)
         save_checkpoint(model, os.path.join(opt.checkpoint_dir, opt.name, 'gmm_final.pth'))
     elif opt.stage == 'TOM':
-        model = UnetGenerator(25, 4, 6, ngf=64, norm_layer=nn.InstanceNorm2d)
+        model = UnetGenerator(32, 4, 6, ngf=64, norm_layer=nn.InstanceNorm2d)
         if not opt.checkpoint =='' and os.path.exists(opt.checkpoint):
             load_checkpoint(model, opt.checkpoint)
         train_tom(opt, train_loader, model, board)

@@ -110,7 +110,7 @@ class FeatureRegression(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
         )
-        self.linear = nn.Linear(64 * 4 * 3, output_dim)
+        self.linear = nn.Linear(64 * 8 * 8, output_dim)
         self.tanh = nn.Tanh()
         if use_cuda:
             self.conv.cuda()
@@ -119,7 +119,7 @@ class FeatureRegression(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = x.view(x.size(0), -1)
+        x = x.reshape(x.size(0), -1)
         x = self.linear(x)
         x = self.tanh(x)
         return x
@@ -404,11 +404,11 @@ class GMM(nn.Module):
     """
     def __init__(self, opt):
         super(GMM, self).__init__()
-        self.extractionA = FeatureExtraction(22, ngf=64, n_layers=3, norm_layer=nn.BatchNorm2d) 
+        self.extractionA = FeatureExtraction(29, ngf=64, n_layers=3, norm_layer=nn.BatchNorm2d) 
         self.extractionB = FeatureExtraction(3, ngf=64, n_layers=3, norm_layer=nn.BatchNorm2d)
         self.l2norm = FeatureL2Norm()
         self.correlation = FeatureCorrelation()
-        self.regression = FeatureRegression(input_nc=192, output_dim=2*opt.grid_size**2, use_cuda=True)
+        self.regression = FeatureRegression(input_nc=1024, output_dim=2*opt.grid_size**2, use_cuda=True)
         self.gridGen = TpsGridGen(opt.fine_height, opt.fine_width, use_cuda=True, grid_size=opt.grid_size)
         
     def forward(self, inputA, inputB):

@@ -14,20 +14,19 @@ from visualization import board_add_images, save_images
 
 def get_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", default = "GMM")
     parser.add_argument("--stage", default = "GMM")
+    parser.add_argument("--name", default = "GMM")
     parser.add_argument("--gpu_ids", default = "")
-    parser.add_argument("--dataroot", default = "data")
-    parser.add_argument("--datamode", default = "train")
-    parser.add_argument("--data_list", default = "train_pairs.txt")
+    parser.add_argument("--dataroot", default = "/data/zhaofuwei/cp-vton-3d/data")
+    parser.add_argument("--data_list", default = "test_pairs.txt")
     parser.add_argument("--shuffle", action='store_true', help='shuffle input data')
-    parser.add_argument("--fine_width", type=int, default = 192)
-    parser.add_argument("--fine_height", type=int, default = 256)
+    parser.add_argument("--fine_width", type=int, default = 512)
+    parser.add_argument("--fine_height", type=int, default = 512)
     parser.add_argument('-j', '--workers', type=int, default=1)
     parser.add_argument('-b', '--batch-size', type=int, default=4)
     parser.add_argument("--radius", type=int, default = 5)
     parser.add_argument("--grid_size", type=int, default = 5)
-    parser.add_argument('--tensorboard_dir', type=str, default='tensorboard', help='save tensorboard infos')
+    parser.add_argument('--tensorboard_dir', type=str, default='test/tensorboard', help='save tensorboard infos')
     parser.add_argument('--result_dir', type=str, default='test', help='save result infos')
     parser.add_argument('--checkpoint', type=str, default='', help='model checkpoint for test')
     parser.add_argument("--display_count", type=int, default = 1)
@@ -63,9 +62,9 @@ def test_gmm(opt, test_loader, model, board):
         im_g = inputs['grid_image'].cuda()
             
         grid, theta = model(agnostic, c)
-        warped_cloth = F.grid_sample(c, grid, padding_mode='border')
-        warped_mask = F.grid_sample(cm, grid, padding_mode='zeros')
-        warped_grid = F.grid_sample(im_g, grid, padding_mode='zeros')
+        warped_cloth = F.grid_sample(c, grid, padding_mode='border', align_corners=True)
+        warped_mask = F.grid_sample(cm, grid, padding_mode='zeros', align_corners=True)
+        warped_grid = F.grid_sample(im_g, grid, padding_mode='zeros', align_corners=True)
 
         visuals = [ [im_h, shape, im_pose], 
                    [c, warped_cloth, im_c], 
@@ -90,7 +89,7 @@ def test_tom(opt, test_loader, model, board):
     os.makedirs(try_on_dir, exist_ok=True)
     
     # test loop
-    for step, inputs in enumerate(test_loader.data_loader):
+    for step, inputs in enumerate(iter(test_loader)):
         iter_start_time = time.time()
         
         im_names = inputs['im_name']
